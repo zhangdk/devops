@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DevOps 教程</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --sidebar-width: 300px;
+        }
+        body {
+            overflow-x: hidden;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            padding: 20px;
+            overflow-y: auto;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+            z-index: 1000;
+        }
+        .main-content {
+            margin-left: var(--sidebar-width);
+            padding: 40px;
+            width: calc(100% - var(--sidebar-width));
+            max-width: 1200px;
+        }
+        .nav-link {
+            color: #333;
+            text-decoration: none;
+            display: block;
+            padding: 5px 0;
+        }
+        .nav-link:hover {
+            color: #007bff;
+        }
+        .nav-section {
+            font-weight: bold;
+            color: #495057;
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-size: 1.1em;
+        }
+        .nav-subsection {
+            padding-left: 15px;
+            border-left: 2px solid #dee2e6;
+            margin-left: 10px;
+        }
+        .markdown-body {
+            line-height: 1.6;
+        }
+        .markdown-body h1,
+        .markdown-body h2,
+        .markdown-body h3,
+        .markdown-body h4,
+        .markdown-body h5,
+        .markdown-body h6 {
+            margin-top: 24px;
+            margin-bottom: 16px;
+            font-weight: 600;
+            line-height: 1.25;
+        }
+        .markdown-body a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+        .markdown-body a:hover {
+            text-decoration: underline;
+        }
+        .markdown-body ul {
+            padding-left: 2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <nav class="col-md-3 sidebar">
+                <h3>DevOps 教程</h3>
+                <div id="navigation"></div>
+            </nav>
+            <main class="col main-content">
+                <div id="content" class="markdown-body"></div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const navigation = {
+            'README.md': '首页',
+            'docs/basics/': {
+                'README.md': '基础理论概述',
+                '01-devops-introduction.md': '什么是 DevOps',
+                '02-devops-culture.md': 'DevOps 文化与理念',
+                '03-devops-and-agile.md': 'DevOps 与敏捷',
+                '04-devops-maturity.md': 'DevOps 成熟度模型',
+                '05-devops-best-practices.md': 'DevOps 最佳实践'
+            },
+            'docs/processes/': {
+                'README.md': '核心流程概述',
+                '01-continuous-integration.md': '持续集成（CI）',
+                '02-continuous-delivery.md': '持续交付（CD）',
+                '03-continuous-deployment.md': '持续部署',
+                '04-continuous-monitoring.md': '持续监控',
+                '05-continuous-feedback.md': '持续反馈',
+                '06-continuous-security.md': '持续安全'
+            },
+            'docs/tools/': {
+                'README.md': '工具链概述',
+                'scm/README.md': '源代码管理工具',
+                'build/README.md': '构建工具',
+                'cicd/README.md': 'CI/CD 工具',
+                'container/README.md': '容器化工具',
+                'config/README.md': '配置管理工具',
+                'monitoring/README.md': '监控工具',
+                'logging/README.md': '日志工具',
+                'security/README.md': '安全工具',
+                'testing/README.md': '自动化测试工具',
+                'performance/README.md': '性能测试工具',
+                'release/README.md': '发布管理工具',
+                'incident/README.md': '事件响应工具',
+                'platform/README.md': 'DevOps 平台',
+                'automation/README.md': '自动化运维工具'
+            },
+            'docs/architecture/': {
+                'README.md': '架构概述',
+                'microservice/README.md': '微服务架构',
+                'service-mesh/README.md': '服务网格',
+                'cloud-native/README.md': '云原生架构',
+                'ddd/README.md': '领域驱动设计',
+                'api-gateway/README.md': 'API 网关',
+                'observability/README.md': '可观测性架构',
+                'event-driven/README.md': '事件驱动架构'
+            }
+        };
+
+        function buildNavigation(nav, path = '', level = 0) {
+            let html = '<ul class="nav flex-column' + (level > 0 ? ' nav-subsection' : '') + '">';
+            for (const [key, value] of Object.entries(nav)) {
+                if (typeof value === 'object') {
+                    const sectionName = key.replace('docs/', '').replace('/', '').replace(/^(\w)/, c => c.toUpperCase());
+                    html += `<li class="nav-item">
+                        <div class="nav-section">${sectionName}</div>`;
+                    html += buildNavigation(value, path + key, level + 1);
+                    html += '</li>';
+                } else {
+                    const isIndex = key === 'README.md';
+                    const className = isIndex ? 'nav-link nav-section' : 'nav-link';
+                    html += `<li class="nav-item">
+                        <a class="${className}" href="#${path}${key}" onclick="return loadContent('${path}${key}')">${value}</a>
+                    </li>`;
+                }
+            }
+            html += '</ul>';
+            return html;
+        }
+
+        async function loadContent(path) {
+            try {
+                const response = await fetch(path);
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const markdown = await response.text();
+                const html = marked.parse(markdown);
+                const contentDiv = document.getElementById('content');
+                contentDiv.innerHTML = html;
+
+                // 拦截内容区域中的链接点击事件
+                contentDiv.querySelectorAll('a').forEach(link => {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const href = this.getAttribute('href');
+                        if (href && !href.startsWith('http')) {
+                            // 处理相对路径
+                            const currentDir = path.substring(0, path.lastIndexOf('/') + 1);
+                            const newPath = new URL(href, new URL(currentDir, window.location.href)).pathname;
+                            loadContent(newPath.substring(1)); // 移除开头的斜杠
+                            history.pushState(null, '', `#${newPath.substring(1)}`);
+                        } else if (href) {
+                            // 外部链接直接打开
+                            window.open(href, '_blank');
+                        }
+                    });
+                });
+
+                // 更新URL，但不刷新页面
+                history.pushState(null, '', `#${path}`);
+                return false;
+            } catch (error) {
+                console.error('Error loading content:', error);
+                document.getElementById('content').innerHTML = `<div class="alert alert-danger">加载内容失败: ${error.message}</div>`;
+            }
+            return false;
+        }
+
+        // 初始化导航
+        document.getElementById('navigation').innerHTML = buildNavigation(navigation);
+
+        // 初始加载README
+        window.onload = () => {
+            const hash = window.location.hash.slice(1);
+            loadContent(hash || 'README.md');
+        };
+
+        // 处理浏览器的后退/前进按钮
+        window.onpopstate = () => {
+            const hash = window.location.hash.slice(1);
+            loadContent(hash || 'README.md');
+        };
+    </script>
+</body>
+</html> 
